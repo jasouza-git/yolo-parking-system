@@ -4,23 +4,21 @@ import pandas as pd
 import numpy as np
 from ultralytics import YOLO
 from datetime import datetime
-import time
+
+# CCTV
+camera_ip = '192.168.1.108:554'
+username = 'admin'
+password = 'ECEpower'
+rtsp_url = f"rtsp://{username}:{password}@{camera_ip}/cam/realmonitor?channel=1&subtype=1"
+video = cv.VideoCapture(rtsp_url)
 
 # Load nessary data
 model = YOLO('yolov8s.pt')
-video = cv.VideoCapture('parking1.mp4')
-tags  = ['person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus', 'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket', 'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza', 'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table', 'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone', 'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush']
-log   = open('log.txt', 'a')
+wait  = 1000*30 # 30 Seconds for each frame
+tags  = open('coco.txt', 'r').read().split('\n')
+park = [[int(v) for v in l] for l in open('park.txt', 'r').read().split('\n')]
 
 # Parker
-park = [
-    (23, 180, 48, 178, 39, 214, 8, 214),
-    (48, 178, 76, 177, 71, 213, 39,214),
-    (250,165, 276,163, 304,191, 273,194),
-    (276,163, 301,159, 332,186, 304,191),
-    (301,159, 326,157, 357,182, 332,186),
-    (326,157, 345,155, 381,179, 357,182)
-]
 parked = []
 def say_coordinates(e, x, y, f, p):
     if e == cv.EVENT_MOUSEMOVE: print([x, y])
@@ -79,7 +77,9 @@ def scan(video):
             cv.circle(frame, (cx,cy), 2, cr, -1)
     
     for i,p in enumerate(parked):
+        log = open('log.txt', 'a')
         if p != parked_new[i]: log.write(str(i).rjust(2,'0')+' '+str(round((datetime.utcnow()-datetime(1970,1,1)).total_seconds()*1000)).rjust(13,'0')+'\n')
+        log.close()
     parked = parked_new
 
     cv.rectangle(frame, (0, 0), (80, 20), (0,255,0), -1)
@@ -91,9 +91,8 @@ def scan(video):
     return True
 
 while scan(video):
-    if cv.waitKey(1000)&0xFF == 27: break
+    if cv.waitKey(wait)&0xFF == 27: break
 
 
 video.release()
 cv.destroyAllWindows()
-log.close()
